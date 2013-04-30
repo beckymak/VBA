@@ -1,0 +1,73 @@
+
+Sub Save_UTF8_CSV()
+
+'Get filepath
+Dim filepath As String
+Dim file_pick1 As FileDialog
+
+    Set file_pick1 = Application.FileDialog(msoFileDialogFilePicker)
+    With file_pick1
+        .InitialFileName = "C:\*.xls" 'change path here
+        .AllowMultiSelect = False
+        .Show
+        On Error Resume Next
+         filepath = .SelectedItems(1)
+        
+    End With
+  
+Encode (filepath)
+
+End Sub
+
+Sub Encode(sPath)
+
+ Dim sPath2, sPath3 As String
+
+ sPath2 = Left(sPath, Len(sPath) - 4) + ".txt"
+ sPath3 = Left(sPath, Len(sPath) - 4) + ".csv"
+ WBName = Dir(sPath)
+
+'Generate a Unicode Text file
+ Application.DisplayAlerts = False
+    Application.Workbooks.Open (sPath)
+    Workbooks(WBName).Activate
+    ActiveWorkbook.SaveAs Filename:=sPath2, FileFormat:=xlUnicodeText, CreateBackup:=False
+    ActiveWorkbook.Close
+ Application.DisplayAlerts = True
+
+
+'Create adoStream to transform Encoding
+ Dim stmUnicode, stmUTF8 As Object
+    Set stmUnicode = CreateObject("ADODB.Stream")
+    Set stmUTF8 = CreateObject("ADODB.Stream")
+  
+Dim ST As String
+    With stmUnicode
+        .Open
+        .Type = 2             ' Type 2 = adTypeText; text/string type
+        .LoadFromFile sPath2  ' Loads the Unicode text File
+        .Charset = "Unicode"  ' Sets stream encoding (Unicode)
+      
+        ST = stmUnicode.ReadText     ' Read Unicode Text
+        ST = Replace(ST, Chr(9), ",") ' Replace Tab Chr(9) to Comma
+      
+        With stmUTF8
+            .Open
+            .Type = 2
+            .Charset = "UTF-8" ' Sets stream encoding (UTF-8)
+            .WriteText (ST)    ' Output UTF-8 text
+            .SaveToFile sPath3, 2 ' Save File , 2=adSaveCreateOverWrite
+            .Close
+        End With
+    .Close
+    End With
+
+    Set stmUnicode = Nothing
+    Set stmUTF8 = Nothing
+    'Workbooks.Open sPath
+
+'Delete txt file
+
+Kill sPath2
+
+End Sub
